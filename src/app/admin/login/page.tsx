@@ -51,6 +51,7 @@ export default function AdminLogin() {
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
                             className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-indigo-500 transition-colors p-1"
+                            suppressHydrationWarning
                         >
                             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>

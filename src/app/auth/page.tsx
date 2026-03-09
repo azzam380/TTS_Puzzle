@@ -78,10 +78,14 @@ export default function AuthPage() {
                             <button
                                 onClick={signInWithGoogle}
                                 className="flex items-center justify-center gap-3 py-3 px-6 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl border border-slate-100 dark:border-slate-700 transition-all font-bold text-sm text-slate-600 dark:text-slate-300 group"
+                                suppressHydrationWarning
                             >
                                 <Chrome size={18} className="group-hover:scale-110 transition-transform" /> Google
                             </button>
-                            <button className="flex items-center justify-center gap-3 py-3 px-6 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl border border-slate-100 dark:border-slate-700 transition-all font-bold text-sm text-slate-600 dark:text-slate-300 group">
+                            <button
+                                className="flex items-center justify-center gap-3 py-3 px-6 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl border border-slate-100 dark:border-slate-700 transition-all font-bold text-sm text-slate-600 dark:text-slate-300 group"
+                                suppressHydrationWarning
+                            >
                                 <Github size={18} className="group-hover:scale-110 transition-transform" /> Github
                             </button>
                         </div>
@@ -127,6 +131,7 @@ export default function AuthPage() {
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-indigo-500 transition-colors"
+                                    suppressHydrationWarning
                                 >
                                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
@@ -154,6 +159,7 @@ export default function AuthPage() {
                             <button
                                 onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
                                 className="text-slate-400 font-bold hover:text-indigo-500 transition-colors group text-sm"
+                                suppressHydrationWarning
                             >
                                 {mode === 'login' ? "Don't have an account? " : "Already a member? "}
                                 <span className="text-indigo-600 dark:text-indigo-400 underline decoration-indigo-500/30 underline-offset-4 font-black">

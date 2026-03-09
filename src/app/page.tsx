@@ -148,6 +148,7 @@ export default function Home() {
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-500 text-xs font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all"
+              suppressHydrationWarning
             >
               <LogOut size={16} /> Logout
             </button>
@@ -179,6 +180,7 @@ export default function Home() {
               type="text"
               placeholder="Search puzzles by title..."
               className="w-full pl-14 pr-6 py-5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 shadow-xl shadow-slate-200/50 dark:shadow-none font-bold dark:text-white"
+              suppressHydrationWarning
             />
           </div>
         </div>

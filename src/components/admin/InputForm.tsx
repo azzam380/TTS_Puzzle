@@ -69,6 +69,7 @@ export default function InputForm({ onGenerate, isLoading }: InputFormProps) {
                                     onChange={(e) => updatePair(index, 'word', e.target.value.toUpperCase())}
                                     className="w-full bg-white dark:bg-slate-900 pl-4 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all uppercase font-black tracking-widest text-indigo-600 dark:text-indigo-400 placeholder:text-slate-300 text-sm"
                                     required
+                                    suppressHydrationWarning
                                 />
                             </div>
                             <button
@@ -76,6 +77,7 @@ export default function InputForm({ onGenerate, isLoading }: InputFormProps) {
                                 onClick={() => removePair(index)}
                                 className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all"
                                 disabled={pairs.length <= 1}
+                                suppressHydrationWarning
                             >
                                 <Trash2 size={18} />
                             </button>
@@ -92,6 +94,7 @@ export default function InputForm({ onGenerate, isLoading }: InputFormProps) {
                                 onChange={(e) => updatePair(index, 'clue', e.target.value)}
                                 className="w-full bg-white dark:bg-slate-900 pl-9 pr-4 py-2 rounded-xl border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm text-slate-600 dark:text-slate-300 placeholder:text-slate-300 italic"
                                 required
+                                suppressHydrationWarning
                             />
                         </div>
                     </div>
@@ -101,6 +104,7 @@ export default function InputForm({ onGenerate, isLoading }: InputFormProps) {
                     type="button"
                     onClick={addPair}
                     className="w-full flex items-center justify-center gap-2 py-4 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-slate-400 hover:text-indigo-500 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/5 transition-all text-sm font-bold"
+                    suppressHydrationWarning
                 >
                     <Plus size={18} /> Add Word
                 </button>
@@ -111,6 +115,7 @@ export default function InputForm({ onGenerate, isLoading }: InputFormProps) {
                     type="submit"
                     disabled={isLoading}
                     className="w-full flex items-center justify-center gap-3 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-lg transition-all shadow-xl shadow-indigo-200 dark:shadow-none hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                    suppressHydrationWarning
                 >
                     <Wand2 size={24} /> Generate Masterpiece
                 </button>
