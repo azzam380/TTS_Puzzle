@@ -17,23 +17,39 @@ export default function AdminPage() {
     const router = useRouter();
 
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        const checkAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            // Gate 1: General Authentication
             if (!session) {
                 router.push('/auth');
-            } else {
-                setIsLoaded(true);
+                return;
             }
-        });
+
+            // Gate 2: Creator Studio Authorization (admin123)
+            const isAdminAuthorized = localStorage.getItem('tts-admin-auth');
+            if (!isAdminAuthorized) {
+                router.push('/admin/login');
+                return;
+            }
+
+            setIsLoaded(true);
+        };
+
+        checkAuth();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            if (!session) router.push('/auth');
+            if (!session) {
+                router.push('/auth');
+            }
         });
 
         return () => subscription.unsubscribe();
     }, [router]);
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
+        localStorage.removeItem('tts-admin-auth'); // Clear the second gate
+        await supabase.auth.signOut(); // Clear the first gate
         router.push('/');
     };
 
