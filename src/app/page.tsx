@@ -11,8 +11,10 @@ export default function Home() {
   const [session, setSession] = useState<Session | null>(null);
   const [puzzles, setPuzzles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) fetchPuzzles();
@@ -40,7 +42,7 @@ export default function Home() {
     setSession(null);
   };
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="min-h-screen bg-[#f8fafc] dark:bg-[#020617] flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />

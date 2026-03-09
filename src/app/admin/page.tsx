@@ -14,9 +14,11 @@ export default function AdminPage() {
     const [title, setTitle] = useState('');
     const [isPublishing, setIsPublishing] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
+        setMounted(true);
         const checkAuth = async () => {
             const { data: { session } } = await supabase.auth.getSession();
 
@@ -53,7 +55,7 @@ export default function AdminPage() {
         router.push('/');
     };
 
-    if (!isLoaded) return null;
+    if (!mounted || !isLoaded) return null;
 
     const handleGenerate = (words: { word: string, clue: string }[]) => {
         const gen = new CrosswordGenerator(words);

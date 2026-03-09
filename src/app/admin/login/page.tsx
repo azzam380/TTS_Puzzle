@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, Sparkles, ArrowRight, Lock, Eye, EyeOff } from 'lucide-react';
 
@@ -9,11 +9,14 @@ export default function AdminLogin() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const router = useRouter();
 
-    useState(() => {
+    useEffect(() => {
+        setMounted(true);
         const checkAuth = async () => {
-            const { data: { session } } = await import('@/lib/supabase').then(m => m.supabase.auth.getSession());
+            const { supabase } = await import('@/lib/supabase');
+            const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 router.push('/auth');
             } else {
@@ -21,9 +24,9 @@ export default function AdminLogin() {
             }
         };
         checkAuth();
-    });
+    }, [router]);
 
-    if (!isLoaded) return null;
+    if (!mounted || !isLoaded) return null;
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();

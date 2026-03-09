@@ -14,9 +14,11 @@ export default function AuthPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [mounted, setMounted] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
+        setMounted(true);
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) router.push('/');
         });
@@ -47,6 +49,8 @@ export default function AuthPage() {
     const signInWithGoogle = async () => {
         await supabase.auth.signInWithOAuth({ provider: 'google' });
     };
+
+    if (!mounted) return null;
 
     return (
         <main className="min-h-screen bg-[#f8fafc] dark:bg-[#020617] flex items-center justify-center p-6 selection:bg-indigo-500 selection:text-white">

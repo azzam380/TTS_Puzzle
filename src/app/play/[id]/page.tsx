@@ -16,8 +16,10 @@ export default function PlayPage({ params }: { params: Promise<{ id: string }> }
     const [words, setWords] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         const checkAuth = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -67,7 +69,7 @@ export default function PlayPage({ params }: { params: Promise<{ id: string }> }
         checkAuth();
     }, [id, router]);
 
-    if (loading) {
+    if (!mounted || loading) {
         return (
             <div className="min-h-screen bg-[#f8fafc] dark:bg-[#020617] flex items-center justify-center">
                 <Loader2 className="w-12 h-12 text-indigo-500 animate-spin" />
