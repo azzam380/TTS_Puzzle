@@ -94,9 +94,9 @@ export default function AdminPage() {
             if (wordsError) throw wordsError;
 
             router.push(`/play/${puzzleData.id}`);
-        } catch (error) {
-            console.error('Error publishing:', error);
-            alert('Failed to publish puzzle. Please check your Supabase connecting strings.');
+        } catch (error: any) {
+            console.error('FULL ERROR DETAIL:', JSON.stringify(error, null, 2));
+            alert(error.message || 'Failed to publish puzzle. Please check your Supabase connecting strings.');
         } finally {
             setIsPublishing(false);
         }

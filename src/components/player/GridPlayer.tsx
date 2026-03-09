@@ -2,8 +2,12 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { PuzzleWord } from '@/lib/supabase';
-import { CheckCircle2, ChevronRight, Keyboard, RotateCcw, Trophy, Timer, Info } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Keyboard, RotateCcw, Trophy, Timer, Info, Download, Users, Share2, Loader2, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toPng } from 'html-to-image';
+import { jsPDF } from 'jspdf';
+import confetti from 'canvas-confetti';
+import { supabase } from '@/lib/supabase';
 
 interface GridPlayerProps {
     puzzle: {
@@ -21,6 +25,28 @@ export default function GridPlayer({ puzzle, words }: GridPlayerProps) {
     const [direction, setDirection] = useState<'across' | 'down'>('across');
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [seconds, setSeconds] = useState(0);
+    const [isMultiplayer, setIsMultiplayer] = useState(false);
+    const [leaderboard, setLeaderboard] = useState<any[]>([]);
+    const [showLeaderboard, setShowLeaderboard] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+    const gridRef = useRef<HTMLDivElement>(null);
+    const [user, setUser] = useState<any>(null);
+
+    // Auth & Leaderboard effect
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+        fetchLeaderboard();
+    }, [puzzle.id]);
+
+    const fetchLeaderboard = async () => {
+        const { data } = await supabase
+            .from('leaderboard')
+            .select('*')
+            .eq('puzzle_id', puzzle.id)
+            .order('score', { ascending: false })
+            .limit(5);
+        setLeaderboard(data || []);
+    };
 
     // Timer effect
     useEffect(() => {
@@ -28,6 +54,33 @@ export default function GridPlayer({ puzzle, words }: GridPlayerProps) {
         const interval = setInterval(() => setSeconds(s => s + 1), 1000);
         return () => clearInterval(interval);
     }, [isSubmitted]);
+
+    // REALTIME: Main Bareng Logic
+    useEffect(() => {
+        if (!isMultiplayer) return;
+
+        const channel = supabase.channel(`puzzle-${puzzle.id}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'puzzle_sessions',
+                filter: `puzzle_id=eq.${puzzle.id}`
+            }, (payload) => {
+                if (payload.new.grid_data) {
+                    setGridValues(payload.new.grid_data);
+                }
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, [isMultiplayer, puzzle.id]);
+
+    const syncGrid = async (newValues: any) => {
+        if (!isMultiplayer) return;
+        await supabase
+            .from('puzzle_sessions')
+            .upsert({ puzzle_id: puzzle.id, grid_data: newValues }, { onConflict: 'puzzle_id' });
+    };
 
     const formatTime = (s: number) => {
         const mins = Math.floor(s / 60);
@@ -82,7 +135,9 @@ export default function GridPlayer({ puzzle, words }: GridPlayerProps) {
             if (/^[a-zA-Z]$/.test(e.key)) {
                 const char = e.key.toUpperCase();
                 const key = `${x}-${y}`;
-                setGridValues(prev => ({ ...prev, [key]: char }));
+                const newValues = { ...gridValues, [key]: char };
+                setGridValues(newValues);
+                syncGrid(newValues);
 
                 if (direction === 'across') {
                     if (x + 1 < puzzle.width && gridMap[`${x + 1}-${y}`]) setActiveCell({ x: x + 1, y });
@@ -128,19 +183,81 @@ export default function GridPlayer({ puzzle, words }: GridPlayerProps) {
     const totalCells = Object.keys(gridMap).length;
     const progress = Math.round((correctCount / totalCells) * 100);
 
+    const handleSubmit = async () => {
+        setIsSubmitted(true);
+        if (progress === 100) {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+
+            // Calculate Score: Base 10,000 - (seconds * 10)
+            const score = Math.max(0, 10000 - (seconds * 10));
+
+            if (user) {
+                await supabase.from('leaderboard').insert({
+                    puzzle_id: puzzle.id,
+                    user_id: user.id,
+                    email: user.email,
+                    time_seconds: seconds,
+                    score: score
+                });
+                fetchLeaderboard();
+            }
+            setShowLeaderboard(true);
+        }
+    };
+
+    const exportAsImage = async () => {
+        if (!gridRef.current) return;
+        setIsExporting(true);
+        try {
+            const dataUrl = await toPng(gridRef.current, { backgroundColor: '#ffffff', cacheBust: true });
+            const link = document.createElement('a');
+            link.download = `${puzzle.title.replace(/\s+/g, '_')}_TTS.png`;
+            link.href = dataUrl;
+            link.click();
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const exportAsPDF = async () => {
+        if (!gridRef.current) return;
+        setIsExporting(true);
+        try {
+            const dataUrl = await toPng(gridRef.current, { backgroundColor: '#ffffff' });
+            const pdf = new jsPDF({
+                orientation: puzzle.width > puzzle.height ? 'landscape' : 'portrait',
+            });
+            const imgProps = pdf.getImageProperties(dataUrl);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`${puzzle.title.replace(/\s+/g, '_')}_TTS.pdf`);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
         <div className="flex flex-col lg:flex-row gap-12 items-start animate-in fade-in slide-in-from-bottom-8 duration-1000">
             {/* Game Console */}
             <div className="flex-1 flex flex-col gap-8 w-full">
                 {/* Stats Header */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
                     <StatCard icon={<Timer size={18} />} label="Timer" value={formatTime(seconds)} color="indigo" />
                     <StatCard icon={<Trophy size={18} />} label="Progress" value={`${progress}%`} color="emerald" progress={progress} />
-                    <StatCard icon={<Keyboard size={18} />} label="Mode" value={direction.toUpperCase()} color="blue" />
+                    <StatCard icon={<Keyboard size={18} />} label="Mode" value={direction.toUpperCase()} color="blue" onClick={() => setDirection(prev => prev === 'across' ? 'down' : 'across')} clickable />
+                    <StatCard
+                        icon={<Users size={18} />}
+                        label="Co-Op"
+                        value={isMultiplayer ? "LIVE" : "OFF"}
+                        color={isMultiplayer ? "rose" : "slate"}
+                        onClick={() => setIsMultiplayer(!isMultiplayer)}
+                        clickable
+                    />
                 </div>
 
                 {/* The Grid Container */}
-                <div className="relative bg-white dark:bg-slate-900 p-10 md:p-16 rounded-[3.5rem] shadow-2xl shadow-indigo-500/10 border border-slate-100 dark:border-slate-800 flex justify-center items-center overflow-auto">
+                <div ref={gridRef} className="relative bg-white dark:bg-slate-900 p-8 md:p-12 rounded-[3rem] shadow-2xl border border-slate-100 dark:border-slate-800 flex justify-center items-center overflow-auto scrollbar-none touch-pan-x touch-pan-y">
                     <div
                         className="grid gap-0.5 bg-slate-300 dark:bg-slate-700 border-4 border-slate-900 dark:border-slate-950 shadow-2xl p-0.5 rounded-xl overflow-hidden"
                         style={{
@@ -178,6 +295,7 @@ export default function GridPlayer({ puzzle, words }: GridPlayerProps) {
                                             isSubmitted && !isCorrect && isFilled && !isActive && "bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400",
                                             !isSubmitted && !isActive && !isInActiveWord && isFilled && "text-indigo-600 dark:text-indigo-400"
                                         )}
+                                        suppressHydrationWarning
                                     >
                                         {wordStart && (
                                             <span className="absolute top-1 left-1.5 text-[9px] md:text-[11px] font-black text-slate-300 dark:text-slate-600 leading-none">
@@ -195,23 +313,46 @@ export default function GridPlayer({ puzzle, words }: GridPlayerProps) {
                 {/* Controls */}
                 <div className="flex flex-col md:flex-row items-center gap-4 w-full">
                     <button
-                        onClick={() => setIsSubmitted(true)}
-                        className="flex-1 w-full md:w-auto py-5 bg-slate-900 dark:bg-indigo-600 text-white rounded-[1.5rem] font-black text-xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-indigo-500/10 flex items-center justify-center gap-3"
+                        onClick={handleSubmit}
+                        disabled={isSubmitted && progress === 100}
+                        className="flex-1 w-full md:w-auto py-5 bg-indigo-600 hover:bg-slate-900 text-white rounded-[1.5rem] font-black text-xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-indigo-500/10 flex items-center justify-center gap-3 disabled:opacity-50"
+                        suppressHydrationWarning
                     >
-                        <CheckCircle2 size={24} /> Submit Puzzle
+                        <CheckCircle2 size={24} /> {isSubmitted && progress === 100 ? "Masterpiece Solved!" : "Submit Puzzle"}
                     </button>
-                    <button
-                        onClick={() => { setGridValues({}); setIsSubmitted(false); setSeconds(0); }}
-                        className="w-full md:w-auto px-8 py-5 bg-white dark:bg-slate-900 text-slate-400 hover:text-rose-500 border border-slate-100 dark:border-slate-800 rounded-[1.5rem] font-black text-xl hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all flex items-center justify-center gap-2"
-                    >
-                        <RotateCcw size={24} />
-                    </button>
+                    <div className="flex gap-2 w-full md:w-auto">
+                        <button
+                            onClick={exportAsImage}
+                            disabled={isExporting}
+                            title="Export as PNG"
+                            className="p-5 bg-white dark:bg-slate-900 text-slate-400 border border-slate-100 dark:border-slate-800 rounded-[1.5rem] font-black hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all flex items-center justify-center shadow-lg"
+                            suppressHydrationWarning
+                        >
+                            {isExporting ? <Loader2 size={24} className="animate-spin" /> : <Download size={24} />}
+                        </button>
+                        <button
+                            onClick={exportAsPDF}
+                            disabled={isExporting}
+                            title="Export as PDF"
+                            className="p-5 bg-white dark:bg-slate-900 text-slate-400 border border-slate-100 dark:border-slate-800 rounded-[1.5rem] font-black hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all flex items-center justify-center shadow-lg"
+                            suppressHydrationWarning
+                        >
+                            {isExporting ? <Loader2 size={24} className="animate-spin" /> : <Share2 size={24} />}
+                        </button>
+                        <button
+                            onClick={() => { setGridValues({}); setIsSubmitted(false); setSeconds(0); setShowLeaderboard(false); }}
+                            className="p-5 bg-white dark:bg-slate-900 text-slate-400 hover:text-rose-500 border border-slate-100 dark:border-slate-800 rounded-[1.5rem] font-black hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all flex items-center justify-center shadow-lg"
+                            suppressHydrationWarning
+                        >
+                            <RotateCcw size={24} />
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* Clue Sidebar */}
             <div className="w-full lg:w-[450px] space-y-6 lg:sticky lg:top-12">
-                <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800">
+                <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
                     <div className="flex items-center gap-3 mb-8">
                         <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500">
                             <Info size={18} />
@@ -232,19 +373,68 @@ export default function GridPlayer({ puzzle, words }: GridPlayerProps) {
                     <p>Type letters to fill, use <span className="text-white font-bold">Arrow Keys</span> to navigate, and <span className="text-white font-bold">Backspace</span> to erase.</p>
                 </div>
             </div>
+
+            {/* Leaderboard Modal */}
+            {showLeaderboard && (
+                <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-md p-10 rounded-[3rem] shadow-2xl border border-white/20 space-y-8">
+                        <div className="text-center space-y-4">
+                            <div className="mx-auto w-20 h-20 bg-amber-400 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-amber-200 animate-bounce">
+                                <Award size={48} />
+                            </div>
+                            <h2 className="text-3xl font-black text-slate-900 dark:text-white mt-4 tracking-tight">Hall of Fame</h2>
+                            <p className="text-slate-400 font-medium">Top architects for this grid.</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            {leaderboard.map((item, idx) => (
+                                <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                                    <div className="flex items-center gap-4">
+                                        <span className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-black text-xs text-slate-500">#{idx + 1}</span>
+                                        <div>
+                                            <p className="text-sm font-black text-slate-900 dark:text-white">{item.email?.split('@')[0]}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{formatTime(item.time_seconds)}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-lg font-black text-indigo-500 tabular-nums">
+                                        {item.score.toLocaleString()}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <button
+                            onClick={() => setShowLeaderboard(false)}
+                            className="w-full py-4 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl font-black hover:bg-slate-800 transition-all"
+                            suppressHydrationWarning
+                        >
+                            Close Hall of Fame
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
 
-function StatCard({ icon, label, value, color, progress }: { icon: any, label: string, value: string, color: string, progress?: number }) {
+function StatCard({ icon, label, value, color, progress, onClick, clickable }: { icon: any, label: string, value: string, color: string, progress?: number, onClick?: () => void, clickable?: boolean }) {
     const colors: Record<string, string> = {
         indigo: "text-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 border-indigo-100 dark:border-indigo-500/20",
         emerald: "text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20",
         blue: "text-blue-600 bg-blue-50 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/20",
+        rose: "text-rose-600 bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20",
+        slate: "text-slate-400 bg-slate-50 dark:bg-slate-800/10 border-slate-100 dark:border-slate-700/20",
     };
 
     return (
-        <div className={cn("p-5 rounded-[2rem] border transition-all relative overflow-hidden", colors[color])}>
+        <div
+            onClick={onClick}
+            className={cn(
+                "p-5 rounded-[2rem] border transition-all relative overflow-hidden",
+                colors[color],
+                clickable && "hover:scale-105 active:scale-95 cursor-pointer hover:shadow-lg"
+            )}
+        >
             <div className="relative z-10 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="opacity-70">{icon}</div>
