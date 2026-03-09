@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { ArrowLeft, Gamepad2, Sparkles, Loader2 } from 'lucide-react';
 import * as React from 'react';
 
-export default function PlayPage({ params }: { params: React.Usable<{ id: string }> }) {
+export default function PlayPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = React.use(params);
     const router = useRouter();
     const [session, setSession] = useState<any>(null);

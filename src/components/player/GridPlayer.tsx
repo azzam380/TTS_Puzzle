@@ -4,9 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { PuzzleWord } from '@/lib/supabase';
 import { CheckCircle2, ChevronRight, Keyboard, RotateCcw, Trophy, Timer, Info, Download, Users, Share2, Loader2, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toPng } from 'html-to-image';
-import { jsPDF } from 'jspdf';
-import confetti from 'canvas-confetti';
+// Dynamic imports removed from top level to fix SSR issues
 import { supabase } from '@/lib/supabase';
 
 interface GridPlayerProps {
@@ -186,6 +184,7 @@ export default function GridPlayer({ puzzle, words }: GridPlayerProps) {
     const handleSubmit = async () => {
         setIsSubmitted(true);
         if (progress === 100) {
+            const confetti = (await import('canvas-confetti')).default;
             confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
 
             // Calculate Score: Base 10,000 - (seconds * 10)
@@ -209,6 +208,7 @@ export default function GridPlayer({ puzzle, words }: GridPlayerProps) {
         if (!gridRef.current) return;
         setIsExporting(true);
         try {
+            const { toPng } = await import('html-to-image');
             const dataUrl = await toPng(gridRef.current, { backgroundColor: '#ffffff', cacheBust: true });
             const link = document.createElement('a');
             link.download = `${puzzle.title.replace(/\s+/g, '_')}_TTS.png`;
@@ -223,7 +223,9 @@ export default function GridPlayer({ puzzle, words }: GridPlayerProps) {
         if (!gridRef.current) return;
         setIsExporting(true);
         try {
+            const { toPng } = await import('html-to-image');
             const dataUrl = await toPng(gridRef.current, { backgroundColor: '#ffffff' });
+            const { jsPDF } = await import('jspdf');
             const pdf = new jsPDF({
                 orientation: puzzle.width > puzzle.height ? 'landscape' : 'portrait',
             });
