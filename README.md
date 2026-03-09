@@ -1,45 +1,71 @@
-# TTS Generator & Player
+# 🧩 TTS Master - Crossword Builder & Player
 
-A premium, full-stack crossword puzzle application built with Next.js and Supabase.
+Selamat datang di **TTS Master**, aplikasi pembuat Teka-Teki Silang (TTS) premium yang dibangun dengan teknologi full-stack modern. Project ini dirancang untuk memberikan pengalaman "Creator Studio" bagi pembuat puzzle dan pengalaman bermain yang responsif bagi pemain.
 
-## Features
-- **Smart Generator**: Automatically builds a crossword grid from a list of words using an intersection-scoring algorithm.
-- **Admin Studio**: Easy interface to create puzzles, preview grids, and publish them.
-- **Interactive Player**: Responsive grid with full keyboard support (arrow keys), auto-focus, and real-time validation.
-- **Database Integrated**: Persists puzzles and results using Supabase.
+---
 
-## Tech Stack
-- **Frontend**: Next.js 15 (App Router), Tailwind CSS, Lucide React.
-- **Backend**: Supabase (PostgreSQL).
-- **State**: TanStack Query & React State.
+## 🚀 Fitur Utama
+1.  **Smart Generator (Backtracking)**: Algoritma cerdas yang otomatis menyusun grid TTS dari daftar kata acak dengan optimasi persimpangan huruf (intersections).
+2.  **Creator Studio**: Dashboard intuitif untuk membuat, merancang, dan mempublikasikan puzzle Anda sendiri.
+3.  **Cross-Platform Player**: Grid interaktif yang mendukung navigasi keyboard penuh (arrow keys), auto-focus, dan validasi jawaban real-time.
+4.  **Database Terintegrasi**: Sinkronisasi data menggunakan Supabase untuk menyimpan puzzle dan hasil skor.
+5.  **Multiplayer Co-Op (Bonus)**: Mode bermain bersama teman secara real-time (sinkronisasi grid instan).
+6.  **Sistem Skor & Leaderboard**: Papan peringkat otomatis berdasarkan kecepatan pengerjaan.
+7.  **Export Pro**: Simpan hasil karya Anda dalam format **PDF** atau **Gambar (PNG)**.
 
-## Setup Instructions
+---
 
-### 1. Supabase Preparation
-1. Create a new project on [Supabase](https://supabase.com).
-2. Run the SQL schema provided in `supabase_schema.sql` (found in the root) in the Supabase SQL Editor.
-3. Get your **Project URL** and **Anon Key**.
+## 🛠️ Tech Stack
+-   **Frontend**: Next.js 15+ (App Router), React 19, Tailwind CSS.
+-   **Backend**: Supabase (PostgreSQL, Realtime DB, Auth).
+-   **Icons**: Lucide React.
+-   **Export Tools**: html-to-image, jsPDF.
+-   **Animations**: Framer Motion (subtle), Canvas Confetti.
 
-### 2. Environment Variables
-Create a `.env.local` file in the root directory:
+---
+
+## ⚙️ Cara Menjalankan di Lokal
+
+### 1. Persiapan Database (Supabase)
+1.  Buat project baru di [Supabase](https://supabase.com).
+2.  Jalankan kode SQL dari file `supabase_schema.sql` di SQL Editor Supabase untuk membuat tabel dan kebijakan keamanan (RLS).
+
+### 2. Pengaturan Environment
+Buat file `.env.local` di root folder dan masukkan API Key Anda:
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_SUPABASE_URL=alamat_url_supabase_anda
+NEXT_PUBLIC_SUPABASE_ANON_KEY=anon_key_supabase_anda
 ```
 
-### 3. Installation
+### 3. Instalasi & Running
 ```bash
+# Instal dependensi
 npm install
-```
 
-### 4. Run Development Server
-```bash
+# Jalankan server development
 npm run dev
 ```
+Buka [http://localhost:3000](http://localhost:3000) di browser Anda.
 
-## How to Use
-1. Go to `/admin` (Creator Studio).
-2. Enter at least 5-10 words and their clues.
-3. Click "Generate" to see the grid. If some words don't fit, try changing them to have more common letters.
-4. Give your puzzle a title and click "Publish".
-5. You'll be redirected to the play page or find your puzzle in the library (Home).
+---
+
+## 🧠 Dokumentasi Algoritma
+Project ini menggunakan algoritma **Intersection-Scoring Backtracking** untuk membangun grid:
+1.  **Pre-processing**: Mensortir kata dari yang terpanjang ke terpendek untuk dijadikan jangkar utama.
+2.  **Seed Placement**: Menempatkan kata pertama di pusat koordinat.
+3.  **Recursive Matching**: Mencari sel yang sudah terisi, mencari huruf yang sama pada kata baru, dan mencoba menempatkannya (baik secara horizontal maupun vertikal).
+4.  **Scoring & Validation**: Memeriksa aturan crossword (tidak boleh ada kata tetangga yang 'berdempetan' secara ilegal) dan memilih posisi dengan jumlah persimpangan huruf terbanyak.
+
+---
+
+## 🛠️ Masalah & Solusi
+Selama pengembangan, kami menghadapi beberapa tantangan teknis:
+-   **SSR Hydration Error**: Terjadi karena browser extension atau perbedaan waktu render server/client. *Solusi*: Menggunakan pola `mounted` state dan `suppressHydrationWarning`.
+-   **ReferenceError: location is not defined**: Terjadi saat Vercel mencoba mem-build library browser-only (PDF/Image) di sisi server. *Solusi*: Implementasi **Dynamic Imports** sehingga library hanya dimuat saat di lingkungan client.
+-   **RLS Permission**: Kesalahan akses database saat publish. *Solusi*: Mengatur kebijakan Row Level Security (RLS) PostgreSQL untuk mengizinkan `INSERT` secara publik.
+
+---
+
+### 🛡️ Lisensi & Hak Cipta
+Dibuat oleh **Muhammad Azzam** untuk tugas seleksi/magang.
+Akses Repository: [https://github.com/azzam380/TTS_Puzzle](https://github.com/azzam380/TTS_Puzzle)
